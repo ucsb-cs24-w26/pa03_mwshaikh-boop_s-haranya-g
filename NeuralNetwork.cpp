@@ -1,6 +1,8 @@
 // includes
 #include "NeuralNetwork.hpp"
 #include "Trace.hpp"
+#include <queue>
+#include <unordered_set>
 using namespace std;
 
 
@@ -9,37 +11,43 @@ using namespace std;
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::eval() {
-    //stub
+    evaluating = true;
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::train() {
-    //stub
+    evaluating = false;
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setLearningRate(double lr) {
-    //stub
+    learningRate = lr;
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setInputNodeIds(std::vector<int> inputNodeIds) {
-    //stub
+    this->inputNodeIds.clear();
+    for (int inputId : inputNodeIds){
+      this->inputNodeIds.push_back(inputId);
+    }
 }
 
 // STUDENT TODO: IMPLEMENT
 void NeuralNetwork::setOutputNodeIds(std::vector<int> outputNodeIds) {
-    //stub
+    this->outputNodeIds.clear();
+    for (int outputId : outputNodeIds){
+      this->outputNodeIds.push_back(outputId);
+    }
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getInputNodeIds() const {
-    return vector<int>(); //stub
+    return inputNodeIds;
 }
 
 // STUDENT TODO: IMPLEMENT
 vector<int> NeuralNetwork::getOutputNodeIds() const {
-    return vector<int>(); //stub
+    return outputNodeIds; //stub
 }
 
 // STUDENT TODO: IMPLEMENT
@@ -61,6 +69,37 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
     // their value is passed forward directly.
     // Use visitPredictNode and visitPredictNeighbor to handle the neural network math
     // at each step of your traversal.
+    
+    queue<int> q;
+    unordered_set<int> visited;
+
+    for(int i = 0; i < inputNodeIds.size(); i++){
+      int index = inputNodeIds[i];
+      NodeInfo* node = nodes[index];
+      node->postActivationValue = input[i];
+      q.push(i);
+      visited.insert(index);
+    }
+
+    while(!q.empty()){
+      int temp = q.front();
+      q.pop();
+      
+      auto it = inputNodeIds; 
+      if (std::find(it.begin(), it.end(), temp) == it.end()) {
+                visitPredictNode(temp);
+            }
+
+      for(auto v : adjacencyList[temp]){
+	Connection c = v.second;
+	visitPredictNeighbor(c);
+
+        if(!visited.count(c.dest)){
+	   visited.insert(c.dest);
+           q.push(c.dest);	   
+        }
+      }
+    }
 
     vector<double> output;
     for (int i = 0; i < outputNodeIds.size(); i++) {
