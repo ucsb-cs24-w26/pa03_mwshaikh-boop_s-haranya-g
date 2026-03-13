@@ -3,6 +3,7 @@
 #include "Trace.hpp"
 #include <queue>
 #include <unordered_set>
+#include <algorithm>
 using namespace std;
 
 
@@ -77,7 +78,7 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
       int index = inputNodeIds[i];
       NodeInfo* node = nodes[index];
       node->postActivationValue = input[i];
-      q.push(i);
+      q.push(index);
       visited.insert(index);
     }
 
@@ -85,12 +86,11 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
       int temp = q.front();
       q.pop();
       
-      auto it = inputNodeIds; 
-      if (std::find(it.begin(), it.end(), temp) == it.end()) {
+      if (std::find(inputNodeIds.begin(), inputNodeIds.end(), temp) == inputNodeIds.end()) {
                 visitPredictNode(temp);
             }
 
-      for(auto v : adjacencyList[temp]){
+      for(auto &v : adjacencyList[temp]){
 	Connection c = v.second;
 	visitPredictNeighbor(c);
 
@@ -128,7 +128,9 @@ bool NeuralNetwork::contribute(double y, double p) {
     // should not be called on them.
     // The contributions map acts as your "visited" set and also stores each node's
     // computed contribution so it is not recomputed if reached by multiple paths.
-
+    for(auto id : inputNodeIds){
+      contribute(id, y, p);
+    }
 
     flush();
 
@@ -145,15 +147,31 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     NodeInfo* currNode = nodes.at(nodeId);
 
     // If this node is already in the contributions map, return its stored value immediately.
+    if(contributions.find(nodeId) != contributions.end()){
+      return contributions[nodeId];
+    }
 
     if (adjacencyList.at(nodeId).empty()) {
         // Base case: output node (no outgoing connections).
         // Seeds the backward pass with the initial error signal.
         // You do not need to understand this derivation.
         outgoingContribution = -1 * ((y - p) / (p * (1 - p)));
+    } 
+    
+    else{
+        for (auto& pair : adjacencyList[nodeId]){
+	  Connection& c = pair.second;
+	  incomingContribution = contribute(c.dest, y, p);
+	  visitContributeNeighbor(c, incomingContribution, outgoingContribution);
+	}
+
+	if(find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()){
+	  visitContributeNode(nodeId, outgoingContribution);
+	}
     }
 
     // Before returning, store outgoingContribution in the contributions map.
+    contributions[nodeId] = outgoingContribution;
 
     return outgoingContribution;
 }
@@ -169,7 +187,22 @@ bool NeuralNetwork::update() {
     // bias update: bias = bias - (learningRate * delta)
     // weight update: weight = weight - (learningRate * delta)
     // reset the delta term for each node and connection to zero.
-    
+    for (int i = 0; i < nodes.size(); i++){
+    	NodeInfo* node = nodes[i];
+	
+	if(find(inputNodeIds.begin(), inputNodeIds.end(), i) == inputNodeIds.end()){
+		node->bias -= learningRate * node->delta;
+	}
+
+	node->delta = 0;
+
+	for (auto& pair : adjacencyList[i]){
+		Connection& c = pair.second;
+		c.weight -= learningRate * c.delta;
+		c.delta = 0;
+	}
+    } 
+
     flush();
     return true;
     

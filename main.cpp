@@ -1,3 +1,4 @@
+// Mu'aaz Shaikh and Sharanya Garudathil - 3/9/2026
 #include <iostream>
 #include "NeuralNetwork.hpp"
 #include "utility.hpp"
