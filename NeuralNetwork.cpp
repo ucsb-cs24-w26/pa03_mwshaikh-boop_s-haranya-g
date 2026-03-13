@@ -76,7 +76,7 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
 
     for(int i = 0; i < inputNodeIds.size(); i++){
       int index = inputNodeIds[i];
-      NodeInfo* node = nodes.at(index);
+      NodeInfo* node = nodes[index];
       node->postActivationValue = input[i];
       q.push(index);
       visited.insert(index);
@@ -90,20 +90,20 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
                 visitPredictNode(temp);
             }
 
-      for(auto &v : adjacencyList[temp]){
-	Connection c = v.second;
-	visitPredictNeighbor(c);
+      for(auto &neigh : adjacencyList[temp]){
+	Connection con = neigh.second;
+	visitPredictNeighbor(con);
 
-        if(!visited.count(c.dest)){
-	   visited.insert(c.dest);
-           q.push(c.dest);	   
+        if(!visited.count(con.dest)){
+	   visited.insert(con.dest);
+           q.push(con.dest);	   
         }
       }
     }
 
     vector<double> output;
     for (int i = 0; i < outputNodeIds.size(); i++) {
-        int dest = outputNodeIds.at(i);
+        int dest = outputNodeIds[i];
         NodeInfo* outputNode = nodes.at(dest);
         output.push_back(outputNode->postActivationValue);
     }
@@ -128,8 +128,8 @@ bool NeuralNetwork::contribute(double y, double p) {
     // should not be called on them.
     // The contributions map acts as your "visited" set and also stores each node's
     // computed contribution so it is not recomputed if reached by multiple paths.
-    for(auto id : inputNodeIds){
-      contribute(id, y, p);
+    for(auto index : inputNodeIds){
+      contribute(index, y, p);
     }
 
     flush();
@@ -139,10 +139,6 @@ bool NeuralNetwork::contribute(double y, double p) {
 // STUDENT TODO: IMPLEMENT
 double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     visitContributeStart(nodeId); // don't remove this line, used for visualization
-    
-    if(contributions.find(nodeId) != contributions.end()){
-      return contributions[nodeId];
-    }
 
     // incomingContribution: the error signal returned by a recursive call on a neighbor.
     double incomingContribution = 0;
@@ -164,15 +160,14 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     } 
     
     else{
-        for (auto& pair : adjacencyList[nodeId]){
-	  Connection& c = pair.second;
-	  incomingContribution = contribute(c.dest, y, p);
-	  visitContributeNeighbor(c, incomingContribution, outgoingContribution);
+        for (auto& neigh : adjacencyList[nodeId]){
+	  Connection& con = neigh.second;
+	  incomingContribution = contribute(con.dest, y, p);
+	  visitContributeNeighbor(con, incomingContribution, outgoingContribution);
 	}
-	if(find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()){
+    }
+    if(find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()){
 	  visitContributeNode(nodeId, outgoingContribution);
-	}
-
     }
 
     // Before returning, store outgoingContribution in the contributions map.
