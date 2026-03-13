@@ -102,8 +102,8 @@ void Graph::updateNode(int id, NodeInfo n) {
 
 // STUDENT TODO: IMPLEMENT
 NodeInfo* Graph::getNode(int id) const {
-    if(id >= 0 || id < nodes.size()){
-      return nodes[id];
+    if(id >= 0 && id < nodes.size()){
+      return nodes.at(id);
     }
     return nullptr;
 }
@@ -128,8 +128,10 @@ void Graph::clear() {
     	if(nodes[i] != nullptr){
 		delete nodes[i];
 		nodes[i] = nullptr;
+    
 	}
     }
+    nodes.clear();
     adjacencyList.clear();
 }
 

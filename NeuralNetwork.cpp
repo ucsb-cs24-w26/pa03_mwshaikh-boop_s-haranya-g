@@ -76,7 +76,7 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
 
     for(int i = 0; i < inputNodeIds.size(); i++){
       int index = inputNodeIds[i];
-      NodeInfo* node = nodes[index];
+      NodeInfo* node = nodes.at(index);
       node->postActivationValue = input[i];
       q.push(index);
       visited.insert(index);
@@ -86,7 +86,7 @@ vector<double> NeuralNetwork::predict(DataInstance instance) {
       int temp = q.front();
       q.pop();
       
-      if (std::find(inputNodeIds.begin(), inputNodeIds.end(), temp) == inputNodeIds.end()) {
+      if (find(inputNodeIds.begin(), inputNodeIds.end(), temp) == inputNodeIds.end()) {
                 visitPredictNode(temp);
             }
 
@@ -139,6 +139,11 @@ bool NeuralNetwork::contribute(double y, double p) {
 // STUDENT TODO: IMPLEMENT
 double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
     visitContributeStart(nodeId); // don't remove this line, used for visualization
+    
+    if(contributions.find(nodeId) != contributions.end()){
+      return contributions[nodeId];
+    }
+
     // incomingContribution: the error signal returned by a recursive call on a neighbor.
     double incomingContribution = 0;
     // outgoingContribution: built up from this node's neighbors, then scaled by
@@ -164,10 +169,10 @@ double NeuralNetwork::contribute(int nodeId, const double& y, const double& p) {
 	  incomingContribution = contribute(c.dest, y, p);
 	  visitContributeNeighbor(c, incomingContribution, outgoingContribution);
 	}
-
 	if(find(inputNodeIds.begin(), inputNodeIds.end(), nodeId) == inputNodeIds.end()){
 	  visitContributeNode(nodeId, outgoingContribution);
 	}
+
     }
 
     // Before returning, store outgoingContribution in the contributions map.
